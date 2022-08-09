@@ -4,38 +4,37 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
+	"strings"
 
-	"github.com/segmentio/kafka-go"
+	kafka "github.com/segmentio/kafka-go"
 )
 
+func getKafkaReader(kafkaURL, topic, groupID string) *kafka.Reader {
+	brokers := strings.Split(kafkaURL, ",")
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  brokers,
+		GroupID:  groupID,
+		Topic:    topic,
+		MinBytes: 10,   // 10B
+		MaxBytes: 10e6, // 10MB
+	})
+}
+
 func main() {
-	// to consume messages
+	// get kafka reader using environment variables.
+	kafkaURL := "0.0.0.0:9093"
 	topic := "my-topic"
-	partition := 0
+	groupID := "testg1"
 
-	conn, err := kafka.DialLeader(context.Background(), "tcp", "localhost:9092", topic, partition)
-	if err != nil {
-		log.Fatal("failed to dial leader:", err)
-	}
+	reader := getKafkaReader(kafkaURL, topic, groupID)
+	defer reader.Close()
 
-	conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-	batch := conn.ReadBatch(10e3, 1e6) // fetch 10KB min, 1MB max
-
-	b := make([]byte, 10e3) // 10KB max per message
+	fmt.Println("start consuming ... !!")
 	for {
-		n, err := batch.Read(b)
+		m, err := reader.ReadMessage(context.Background())
 		if err != nil {
-			break
+			log.Fatalln(err)
 		}
-		fmt.Println(string(b[:n]))
-	}
-
-	if err := batch.Close(); err != nil {
-		log.Fatal("failed to close batch:", err)
-	}
-
-	if err := conn.Close(); err != nil {
-		log.Fatal("failed to close connection:", err)
+		fmt.Printf("message at topic:%v partition:%v offset:%v	%s = %s\n", m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
 	}
 }

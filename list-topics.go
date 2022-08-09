@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	conn, err := kafka.Dial("tcp", "localhost:9092")
+	conn, err := kafka.Dial("tcp", "0.0.0.0:9093")
 	if err != nil {
 		panic(err.Error())
 	}
