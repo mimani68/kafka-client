@@ -6,12 +6,12 @@
 go run consumer.go
 ```
 
-## Message producer
+## Message Producer
 
 ```bash
 go run producer.go
 ```
-## Up and running KFKA
+## Up and Running KFKA
 
 ```bash
 docker-compose up
